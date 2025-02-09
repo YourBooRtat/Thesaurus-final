@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thesaurus</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(270deg, #4a90e2, #8e44ad, #e67e22);
+            background-size: 600% 600%;
+            animation: gradientAnimation 8s ease infinite;
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .warning-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            font-size: 14px;
+            border-radius: 8px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        input {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #357ABD;
+        }
+
+        .results {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        h3 {
+            color: #4a90e2;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="warning-box">⚠️ This is not very accurate. Use with caution.</div>
+
+    <div class="container">
+        <h1>Thesaurus</h1>
+        <input type="text" id="wordInput" placeholder="Enter a word..." />
+        <button onclick="fetchWordData()">Search</button>
+        <div class="results" id="wordResults"></div>
+    </div>
+
+    <script>
+        async function fetchWordData() {
+            const word = document.getElementById("wordInput").value.trim();
+            if (!word) return;
+
+            document.getElementById("wordResults").innerHTML = "<p>Loading...</p>";
+
+            try {
+                // Fetch synonyms & antonyms from Datamuse API
+                const synonymsResponse = await fetch(`https://api.datamuse.com/words?rel_syn=${word}`);
+                const antonymsResponse = await fetch(`https://api.datamuse.com/words?rel_ant=${word}`);
+                const synonymsData = await synonymsResponse.json();
+                const antonymsData = await antonymsResponse.json();
+
+                // Fetch definitions and examples from Free Dictionary API
+                const dictResponse = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                const dictData = await dictResponse.json();
+
+                let synonymsHTML = synonymsData.length ? synonymsData.map(entry => `<li>${entry.word}</li>`).join('') : "<li>No synonyms found.</li>";
+                let antonymsHTML = antonymsData.length ? antonymsData.map(entry => `<li>${entry.word}</li>`).join('') : "<li>No antonyms found.</li>";
+
+                let meaningsHTML = "<p>No definition found.</p>";
+                let examplesHTML = "<p>No examples found.</p>";
+
+                if (dictData && dictData[0] && dictData[0].meanings) {
+                    meaningsHTML = dictData[0].meanings.map(meaning => `
+                        <p><strong>${meaning.partOfSpeech}:</strong> ${meaning.definitions[0].definition}</p>
+                    `).join('');
+
+                    examplesHTML = dictData[0].meanings.map(meaning => 
+                        meaning.definitions[0].example ? `<p>• ${meaning.definitions[0].example}</p>` : ""
+                    ).join('');
+                }
+
+                document.getElementById("wordResults").innerHTML = `
+                    <h3>Word: ${word}</h3>
+                    <h3>Definition</h3>${meaningsHTML}
+                    <h3>Synonyms</h3><ul>${synonymsHTML}</ul>
+                    <h3>Antonyms</h3><ul>${antonymsHTML}</ul>
+                    <h3>Example Sentences</h3>${examplesHTML}
+                `;
+            } catch (error) {
+                console.error("Error fetching data:", error);
+                document.getElementById("wordResults").innerHTML = "<p style='color: red;'>Error fetching data.</p>";
+            }
+        }
+    </script>
+
+</body>
+</html>
+
+
